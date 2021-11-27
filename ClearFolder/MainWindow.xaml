@@ -4,8 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClearFolder"
-        xmlns:uiWpf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="14"
@@ -25,9 +25,11 @@
         <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}">
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <DataTemplate DataType="{x:Type ProgressBar}">
+        <DataTemplate DataType="{x:Type forms:ProgressBar}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
-                <ProgressBar Style="{DynamicResource MaterialDesignCircularProgressBar}" Width="30" Height="30" HorizontalAlignment="Center" Margin="16" IsIndeterminate="True" Value="0" />
+                <ProgressBar Style="{DynamicResource MaterialDesignCircularProgressBar}" 
+                             Width="30" Height="30" HorizontalAlignment="Center" Margin="16" 
+                             IsIndeterminate="True" Value="0" />
                 <TextBlock Text="Delete files, please wait..." Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="16"  HorizontalAlignment="Center" />
             </StackPanel>
         </DataTemplate>
@@ -57,17 +59,18 @@
                    Content="Days back"/>
                 <TextBox Margin="0,20,20,20"
                      VerticalAlignment="Center"  HorizontalAlignment="Left"
-                     Text="{Binding DaysBack}"/>
+                     Text="{Binding DaysBack}"
+                     IsReadOnly="True"/>
                 <Button Margin="5"
-                    Content="+" 
-                    Command="{Binding IncreaseDaysCommand}"
-                    Click="ButtonIncrease_OnClick"
-                    ToolTip="Increase days"/>
+                        Content="-" 
+                        Command="{Binding DecreaseDaysCommand}"
+                        Click="ButtonDecrease_OnClick"
+                        ToolTip="Decrease days" />
                 <Button Margin="5"
-                Content="-" 
-                Command="{Binding DecreaseDaysCommand}"
-                Click="ButtonDecrease_OnClick"
-                ToolTip="Decrease days"/>
+                        Content="+" 
+                        Command="{Binding IncreaseDaysCommand}"
+                        Click="ButtonIncrease_OnClick"
+                        ToolTip="Increase days"/>
             </StackPanel>
 
             <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"

@@ -11,13 +11,13 @@ namespace ClearFolder
 
         void ButtonIncrease_OnClick(object sender, RoutedEventArgs e)
         {
-            ((MainWindowViewModel)DataContext).IncreaseDecreaseDays(true);
+            ((MainWindowViewModel)DataContext).IncreaseDecreaseDays(true, 1);
 
         }
 
         void ButtonDecrease_OnClick(object sender, RoutedEventArgs e)
         {
-            ((MainWindowViewModel)DataContext).IncreaseDecreaseDays(false);
+            ((MainWindowViewModel)DataContext).IncreaseDecreaseDays(false, 1);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
 using ClearFolder.Models;
@@ -24,9 +25,9 @@ namespace ClearFolder
         public RelayCommand DeleteFolderCommand => new(DeleteFolderCommand_Execute);
         public RelayCommand IncreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand DecreaseDaysCommand => new(DaysCommand_Execute);
-        public RelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
+        public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
         public bool IsAddDays { get; set; }
-
+        public int DaysChangeValue { get; set; }
         public MainWindowViewModel()
         {
             Folders = Config.GetFolders();
@@ -38,17 +39,22 @@ namespace ClearFolder
         {
             if (IsAddDays)
             {
-                DaysBack++;
+                DaysBack += DaysChangeValue;
             }
-            else if (DaysBack > 0)
+            else if (DaysBack - DaysChangeValue > 0)
             {
-                DaysBack--;
+                DaysBack -= DaysChangeValue;
+            }
+            else
+            {
+                DaysBack = 0;
             }
         }
 
-        public void IncreaseDecreaseDays(bool isAdd)
+        public void IncreaseDecreaseDays(bool isAdd, int value)
         {
             IsAddDays = isAdd;
+            DaysChangeValue = value;
         }
 
         void AddFolderCommand_Execute()
@@ -81,16 +87,15 @@ namespace ClearFolder
             FoldersCollection?.Refresh();
         }
 
-        void ClearFolderCommand_Execute()
+        async Task ClearFolderCommand_Execute()
         {
             if (string.IsNullOrEmpty(SelectedFolder.Name)) return;
             if (MessageBox.Show($"Clear files from {SelectedFolder.Name}?", "Confirm clear", MessageBoxButtons.OKCancel,
                 MessageBoxIcon.Question) == DialogResult.Cancel) return;
             _ = DialogHost.Show(new ProgressBar());
-            Directory.GetFiles(SelectedFolder.Name)
-                .Select(f => new FileInfo(f))
-                .Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack))
-                .ToList().ForEach(f => FileSystem.DeleteFile(f.FullName, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin));
+            await Task.Run(() => Directory.GetFiles(SelectedFolder.Name)
+                .Select(f => new FileInfo(f)).Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList()
+                .ForEach(f => FileSystem.DeleteFile(f.FullName, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin)));
             DialogHost.Close("RootDialog");
         }
     }
