@@ -1,0 +1,85 @@
+﻿<Window x:Class="ClearFolder.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClearFolder"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="14"
+        TextOptions.TextFormattingMode="Ideal" 
+        TextOptions.TextRenderingMode="Auto" 
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen"
+        Title="Clear Folder" SizeToContent="WidthAndHeight">
+
+    <Window.DataContext>
+        <local:MainWindowViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}"></Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="20" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="20 0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Stretch">
+            <Label Margin="10 20" 
+                   Content="Days back"/>
+            <TextBox Margin="0,20,20,20"
+                     VerticalAlignment="Center"  HorizontalAlignment="Left"
+                     Text="{Binding DaysBack}"/>
+            <Button Margin="5"
+                    Content="+" 
+                    Command="{Binding IncreaseDaysCommand}"
+                    Click="ButtonIncrease_OnClick"/>
+            <Button Margin="5"
+                Content="-" 
+                Command="{Binding DecreaseDaysCommand}"
+                Click="ButtonDecrease_OnClick"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                  Margin="20 0"
+                  ItemsSource="{Binding FoldersCollection}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  SelectedItem="{Binding SelectedFolder}">
+            <DataGrid.Columns >
+                <DataGridTextColumn Header="Folder" Binding="{Binding Name}">
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="3" Grid.Column="1" Margin="25 0"
+                    Orientation="Horizontal">
+            <Button Margin="5"
+                    Content="+" 
+                    Command="{Binding AddFolderCommand}"/>
+            <Button Margin="5"
+                    Content="-" 
+                    Command="{Binding DeleteFolderCommand}"/>
+        </StackPanel>
+        <Button Grid.Row="3" Grid.Column="2" Margin="20"
+                Content="Clear Folder"
+                Command="{Binding ClearFolderCommand}"/>
+    </Grid>
+</Window>
