@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ClearFolder"
+        xmlns:uiWpf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="14"
@@ -20,66 +22,81 @@
     </Window.DataContext>
 
     <Window.Resources>
-        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}"></Style>
+        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <DataTemplate DataType="{x:Type ProgressBar}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
+                <ProgressBar Style="{DynamicResource MaterialDesignCircularProgressBar}" Width="30" Height="30" HorizontalAlignment="Center" Margin="16" IsIndeterminate="True" Value="0" />
+                <TextBlock Text="Delete files, please wait..." Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="16"  HorizontalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="20" />
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="20" />
-        </Grid.ColumnDefinitions>
+    <materialDesign:DialogHost Identifier="RootDialog">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="20" />
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="20 0"
+            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="20 0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Stretch">
-            <Label Margin="10 20" 
+                <Label Margin="10 20" 
                    Content="Days back"/>
-            <TextBox Margin="0,20,20,20"
+                <TextBox Margin="0,20,20,20"
                      VerticalAlignment="Center"  HorizontalAlignment="Left"
                      Text="{Binding DaysBack}"/>
-            <Button Margin="5"
+                <Button Margin="5"
                     Content="+" 
                     Command="{Binding IncreaseDaysCommand}"
-                    Click="ButtonIncrease_OnClick"/>
-            <Button Margin="5"
+                    Click="ButtonIncrease_OnClick"
+                    ToolTip="Increase days"/>
+                <Button Margin="5"
                 Content="-" 
                 Command="{Binding DecreaseDaysCommand}"
-                Click="ButtonDecrease_OnClick"/>
-        </StackPanel>
+                Click="ButtonDecrease_OnClick"
+                ToolTip="Decrease days"/>
+            </StackPanel>
 
-        <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+            <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                   Margin="20 0"
                   ItemsSource="{Binding FoldersCollection}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   SelectedItem="{Binding SelectedFolder}">
-            <DataGrid.Columns >
-                <DataGridTextColumn Header="Folder" Binding="{Binding Name}">
-                </DataGridTextColumn>
-            </DataGrid.Columns>
-        </DataGrid>
-        <StackPanel Grid.Row="3" Grid.Column="1" Margin="25 0"
+                <DataGrid.Columns >
+                    <DataGridTextColumn Header="Folder" Binding="{Binding Name}">
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Grid.Row="3" Grid.Column="1" Margin="25 0"
                     Orientation="Horizontal">
-            <Button Margin="5"
+                <Button Margin="5"
                     Content="+" 
-                    Command="{Binding AddFolderCommand}"/>
-            <Button Margin="5"
+                    Command="{Binding AddFolderCommand}"
+                    ToolTip="Add Folder"/>
+                <Button Margin="5"
                     Content="-" 
-                    Command="{Binding DeleteFolderCommand}"/>
-        </StackPanel>
-        <Button Grid.Row="3" Grid.Column="2" Margin="20"
+                    Command="{Binding DeleteFolderCommand}"
+                    ToolTip="Remove selected Folder"/>
+            </StackPanel>
+            <Button Grid.Row="3" Grid.Column="2" Margin="20"
                 Content="Clear Folder"
-                Command="{Binding ClearFolderCommand}"/>
-    </Grid>
+                Command="{Binding ClearFolderCommand}"
+                ToolTip="Clear files from selected Folder"/>
+        </Grid>
+    </materialDesign:DialogHost>
 </Window>

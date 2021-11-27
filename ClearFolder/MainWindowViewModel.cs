@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows.Data;
 using System.Windows.Forms;
 using ClearFolder.Models;
+using MaterialDesignThemes.Wpf;
 using Microsoft.Toolkit.Mvvm.Input;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
@@ -85,10 +86,12 @@ namespace ClearFolder
             if (string.IsNullOrEmpty(SelectedFolder.Name)) return;
             if (MessageBox.Show($"Clear files from {SelectedFolder.Name}?", "Confirm clear", MessageBoxButtons.OKCancel,
                 MessageBoxIcon.Question) == DialogResult.Cancel) return;
+            _ = DialogHost.Show(new ProgressBar());
             Directory.GetFiles(SelectedFolder.Name)
                 .Select(f => new FileInfo(f))
                 .Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack))
                 .ToList().ForEach(f => FileSystem.DeleteFile(f.FullName, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin));
+            DialogHost.Close("RootDialog");
         }
     }
 }
