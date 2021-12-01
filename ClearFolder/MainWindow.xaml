@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:ClearFolder"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:system="clr-namespace:System;assembly=System.Runtime"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="14"
@@ -33,6 +34,8 @@
                 <TextBlock Text="Delete files, please wait..." Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="16"  HorizontalAlignment="Center" />
             </StackPanel>
         </DataTemplate>
+        <system:Boolean x:Key="MoveToRecycleBin">False</system:Boolean>
+        <system:Boolean x:Key="DeletePermanently">True</system:Boolean>
     </Window.Resources>
 
     <materialDesign:DialogHost Identifier="RootDialog">
@@ -52,7 +55,7 @@
                 <ColumnDefinition Width="20" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="20 0"
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="20 0 0 0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Stretch">
                 <Label Margin="10 20" 
@@ -73,6 +76,21 @@
                         ToolTip="Increase days"/>
             </StackPanel>
 
+            <StackPanel Grid.Row="1" Grid.Column="2"
+                        VerticalAlignment="Center">
+
+                <StackPanel.Resources>
+                    <Style TargetType="RadioButton" BasedOn="{StaticResource MaterialDesignAccentRadioButton}">
+                        <Setter Property="Command" Value="{Binding ChangeDeleteType}"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Margin" Value="2"/>
+                    </Style>
+                </StackPanel.Resources>
+
+                <RadioButton IsChecked="True" Content="Send to Recycle Bin" CommandParameter="{StaticResource MoveToRecycleBin}"/>
+                <RadioButton Content="Delete Permanently" CommandParameter="{StaticResource DeletePermanently}"/>
+            </StackPanel>
+
             <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                   Margin="20 0"
                   ItemsSource="{Binding FoldersCollection}"
@@ -81,8 +99,7 @@
                   IsReadOnly="True"
                   SelectedItem="{Binding SelectedFolder}">
                 <DataGrid.Columns >
-                    <DataGridTextColumn Header="Folder" Binding="{Binding Name}">
-                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Folder" Binding="{Binding Name}"/>
                 </DataGrid.Columns>
             </DataGrid>
             <StackPanel Grid.Row="3" Grid.Column="1" Margin="25 0"

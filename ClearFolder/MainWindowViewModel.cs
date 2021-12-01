@@ -25,9 +25,12 @@ namespace ClearFolder
         public RelayCommand DeleteFolderCommand => new(DeleteFolderCommand_Execute);
         public RelayCommand IncreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand DecreaseDaysCommand => new(DaysCommand_Execute);
+        public RelayCommand<bool> ChangeDeleteType => new(ChangeDeleteType_OnClick);
         public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
         public bool IsAddDays { get; set; }
         public int DaysChangeValue { get; set; }
+        public bool IsDeletePermanently { get; set; }
+
         public MainWindowViewModel()
         {
             Folders = Config.GetFolders();
@@ -90,13 +93,28 @@ namespace ClearFolder
         async Task ClearFolderCommand_Execute()
         {
             if (string.IsNullOrEmpty(SelectedFolder.Name)) return;
-            if (MessageBox.Show($"Clear files from {SelectedFolder.Name}?", "Confirm clear", MessageBoxButtons.OKCancel,
-                MessageBoxIcon.Question) == DialogResult.Cancel) return;
+            List<FileInfo> deleteFiles = Directory.GetFiles(SelectedFolder.Name).Select(f => new FileInfo(f))
+                .Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
+            if (!deleteFiles.Any())
+            {
+                MessageBox.Show($"Files older than {DaysBack} day{(DaysBack > 1 ? "s" : "")} not found", "No Files",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (MessageBox.Show($"Delete {deleteFiles.Count} files from {SelectedFolder.Name}?", "Confirm Delete",
+                MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.Cancel) return;
+            RecycleOption recycleOption = IsDeletePermanently
+                ? RecycleOption.DeletePermanently
+                : RecycleOption.SendToRecycleBin;
             _ = DialogHost.Show(new ProgressBar());
-            await Task.Run(() => Directory.GetFiles(SelectedFolder.Name)
-                .Select(f => new FileInfo(f)).Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList()
-                .ForEach(f => FileSystem.DeleteFile(f.FullName, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin)));
+            await Task.Run(() => deleteFiles
+                .ForEach(f => FileSystem.DeleteFile(f.FullName, UIOption.OnlyErrorDialogs, recycleOption)));
             DialogHost.Close("RootDialog");
+        }
+
+        void ChangeDeleteType_OnClick(bool isDelete)
+        {
+            IsDeletePermanently = isDelete;
         }
     }
 }
