@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace ClearFolder
     {
         public List<Folder> Folders { get; set; }
         public ICollectionView FoldersCollection { get; set; }
-        public Folder SelectedFolder { get; set; } = new();
+        public Folder SelectedFolder { get; set; }
         public int DaysBack { get; set; }
         public RelayCommand AddFolderCommand => new(AddFolderCommand_Execute);
         public RelayCommand DeleteFolderCommand => new(DeleteFolderCommand_Execute);
@@ -30,11 +31,13 @@ namespace ClearFolder
         public bool IsAddDays { get; set; }
         public int DaysChangeValue { get; set; }
         public bool IsDeletePermanently { get; set; }
+        public RelayCommand OpenSelectedFolder => new(OpenSelectedFolder_Execute);
 
         public MainWindowViewModel()
         {
             Folders = Config.GetFolders();
             FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
+            SelectedFolder = Folders.FirstOrDefault();
             DaysBack = 7;
         }
 
@@ -92,16 +95,24 @@ namespace ClearFolder
 
         async Task ClearFolderCommand_Execute()
         {
-            if (string.IsNullOrEmpty(SelectedFolder.Name)) return;
-            List<FileInfo> deleteFiles = Directory.GetFiles(SelectedFolder.Name).Select(f => new FileInfo(f))
+            if (!Folders.Any()) return;
+            foreach (Folder folder in Folders.Where(f => f.IsSelected))
+            {
+                await ClearFolder(folder.Name);
+            }
+        }
+
+        async Task ClearFolder(string folderPath)
+        {
+            List<FileInfo> deleteFiles = Directory.GetFiles(folderPath).Select(f => new FileInfo(f))
                 .Where(f => f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
             if (!deleteFiles.Any())
             {
-                MessageBox.Show($"Files older than {DaysBack} day{(DaysBack > 1 ? "s" : "")} not found", "No Files",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Files older than {DaysBack} day{(DaysBack > 1 ? "s" : "")} not found in\n{folderPath}",
+                    "No Files", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            if (MessageBox.Show($"Delete {deleteFiles.Count} files from {SelectedFolder.Name}?", "Confirm Delete",
+            if (MessageBox.Show($"Delete {deleteFiles.Count} files from {folderPath}?", "Confirm Delete",
                 MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.Cancel) return;
             RecycleOption recycleOption = IsDeletePermanently
                 ? RecycleOption.DeletePermanently
@@ -115,6 +126,27 @@ namespace ClearFolder
         void ChangeDeleteType_OnClick(bool isDelete)
         {
             IsDeletePermanently = isDelete;
+        }
+
+        void OpenSelectedFolder_Execute()
+        {
+            if (SelectedFolder == null) return;
+            string folderPath = SelectedFolder.Name;
+            if (Directory.Exists(folderPath))
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    Arguments = folderPath,
+                    FileName = "explorer.exe"
+                };
+
+                Process.Start(startInfo);
+            }
+            else
+            {
+                MessageBox.Show($"{folderPath}\nDirectory does not exist!",
+                    "Open Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
     }
 }
