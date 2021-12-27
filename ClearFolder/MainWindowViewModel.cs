@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
@@ -28,10 +29,12 @@ namespace ClearFolder
         public RelayCommand DecreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand<bool> ChangeDeleteType => new(ChangeDeleteType_OnClick);
         public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
+        public AsyncRelayCommand EmptyRecycleBin => new(EmptyRecycleBin_Execute);
         public bool IsAddDays { get; set; }
         public int DaysChangeValue { get; set; }
         public bool IsDeletePermanently { get; set; }
         public RelayCommand OpenSelectedFolder => new(OpenSelectedFolder_Execute);
+        public bool ClearButtonEnabled { get; set; }
 
         public MainWindowViewModel()
         {
@@ -41,6 +44,12 @@ namespace ClearFolder
             FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
             SelectedFolder = Folders.FirstOrDefault();
             Folders.ForEach(f => f.DaysBack = DaysBack);
+            SetClearButtonEnabled();
+        }
+
+        public void SetClearButtonEnabled()
+        {
+            ClearButtonEnabled = Folders.Any(f => f.IsSelected && f.DeleteFilesCount > 0);
         }
 
         void DaysCommand_Execute()
@@ -58,6 +67,7 @@ namespace ClearFolder
                 DaysBack = 0;
             }
             Folders.ForEach(f => f.DaysBack = DaysBack);
+            SetClearButtonEnabled();
         }
 
         public void IncreaseDecreaseDays(bool isAdd, int value)
@@ -82,6 +92,7 @@ namespace ClearFolder
             SelectedFolder ??= new() { Name = selectedFolder };
             FoldersCollection?.Refresh();
             Config.AddFolderToRegistry(Folders);
+            SetClearButtonEnabled();
         }
 
         void DeleteFolderCommand_Execute()
@@ -92,6 +103,7 @@ namespace ClearFolder
             Folders.Remove(SelectedFolder);
             Config.AddFolderToRegistry(Folders);
             FoldersCollection?.Refresh();
+            SetClearButtonEnabled();
         }
 
         async Task ClearFolderCommand_Execute()
@@ -125,7 +137,7 @@ namespace ClearFolder
             await Task.Run(DeleteFiles);
 
             DialogHost.Close("RootDialog");
-            Folders.First(f => f.Name == folderPath).ToolTipText = $"Delete {failDelete} files";
+            Folders.First(f => f.Name == folderPath).DeleteFilesCount = failDelete;
 
             void DeleteFiles()
             {
@@ -166,6 +178,40 @@ namespace ClearFolder
             {
                 MessageBox.Show($"{folderPath}\nDirectory does not exist!",
                     "Open Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+
+        [DllImport("Shell32.dll", CharSet = CharSet.Unicode)]
+        static extern uint SHEmptyRecycleBin(IntPtr hwnd, string pszRootPath, RecycleFlags dwFlags);
+
+        enum RecycleFlags : uint
+        {
+            SHRB_NOCONFIRMATION = 0x00000001
+        }
+
+        async Task EmptyRecycleBin_Execute()
+        {
+            DialogResult result = MessageBox.Show("Are you sure you want to delete all the items from recycle bin?",
+                "Clear recycle bin", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (result == DialogResult.Cancel) return;
+            //_ = DialogHost.Show(new ProgressBar());
+            await Task.Run(DeleteFiles);
+            //DialogHost.Close("RootDialog");
+
+            void DeleteFiles()
+            {
+                try
+                {
+                    _ = SHEmptyRecycleBin(IntPtr.Zero, null, RecycleFlags.SHRB_NOCONFIRMATION);
+                    MessageBox.Show("Files deleted.", "Clear recycle bin",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Files couldn't be recycled." + ex.Message, "Clear recycle bin", MessageBoxButtons.OK,
+                        MessageBoxIcon.Stop);
+                }
             }
         }
     }

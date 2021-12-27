@@ -58,7 +58,7 @@
 
             <StackPanel Grid.Row="1" Grid.Column="1" Margin="20 0 0 0"
                     Orientation="Horizontal"
-                    HorizontalAlignment="Stretch">
+                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Label Margin="10 20" 
                    Content="Days back"/>
                 <TextBox Margin="0,20,20,20"
@@ -92,41 +92,53 @@
                 <RadioButton Content="Delete Permanently" CommandParameter="{StaticResource DeletePermanently}"/>
             </StackPanel>
 
+            <StackPanel Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel.Resources>
+                    <ImageBrush x:Key="AddButtonImageBrush" ImageSource="/download.ico" Stretch="UniformToFill"/>
+                </StackPanel.Resources>
+                <Button Background="{StaticResource AddButtonImageBrush}" HorizontalAlignment="Center" ToolTip="Empty Recycle Bin"
+                        Command="{Binding EmptyRecycleBin}"/>
+            </StackPanel>
+
             <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                   Margin="20 0"
                   ItemsSource="{Binding FoldersCollection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsSynchronizedWithCurrentItem="True"
+                  GridLinesVisibility="None"
                   SelectedItem="{Binding SelectedFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
 
                 <DataGrid.Resources>
                     <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatAccentButton}"/>
                     <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource MaterialDesignDataGridCell}">
                         <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                     </Style>
                 </DataGrid.Resources>
 
                 <DataGrid.Columns >
-                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <DataGridCheckBoxColumn Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <DataGridCheckBoxColumn.CellStyle>
+                            <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                <EventSetter Event="CheckBox.Click" Handler="IsSelectedClick"/>
+                            </Style>
+                        </DataGridCheckBoxColumn.CellStyle>
+                    </DataGridCheckBoxColumn>
 
-                    <DataGridTemplateColumn Header="Folder">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}" >
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="ToolTip" Value="{Binding ToolTipText, Mode=TwoWay}" />
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Folder" IsReadOnly="True" Binding="{Binding Name}"/>
+
+                    <DataGridTextColumn Header="Delete Files" Binding="{Binding DeleteFilesCount}" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
 
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
@@ -150,6 +162,7 @@
             </StackPanel>
             <Button Grid.Row="3" Grid.Column="2" Margin="20"
                 Content="Clear Folders"
+                IsEnabled="{Binding ClearButtonEnabled}"
                 Command="{Binding ClearFolderCommand}"
                 ToolTip="Clear files from selected Folder"/>
         </Grid>

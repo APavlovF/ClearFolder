@@ -19,5 +19,10 @@ namespace ClearFolder
         {
             ((MainWindowViewModel)DataContext).IncreaseDecreaseDays(false, 1);
         }
+
+        void IsSelectedClick(object sender, RoutedEventArgs e)
+        {
+            ((MainWindowViewModel)DataContext).SetClearButtonEnabled();
+        }
     }
 }
