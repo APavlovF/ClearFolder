@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
 using ClearFolder.Models;
@@ -26,7 +27,7 @@ namespace ClearFolder
         public RelayCommand IncreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand DecreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand<bool> ChangeDeleteType => new(ChangeDeleteType_OnClick);
-        public RelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
+        public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
         public bool IsAddDays { get; set; }
         public int DaysChangeValue { get; set; }
         public bool IsDeletePermanently { get; set; }
@@ -93,16 +94,16 @@ namespace ClearFolder
             FoldersCollection?.Refresh();
         }
 
-        void ClearFolderCommand_Execute()
+        async Task ClearFolderCommand_Execute()
         {
             if (!Folders.Any()) return;
             foreach (Folder folder in Folders.Where(f => f.IsSelected))
             {
-                ClearFolder(folder.Name);
+                await ClearFolder(folder.Name);
             }
         }
 
-        void ClearFolder(string folderPath)
+        async Task ClearFolder(string folderPath)
         {
             List<FileInfo> deleteFiles = Directory.GetFiles(folderPath).Select(f => new FileInfo(f))
                 .Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
@@ -121,21 +122,25 @@ namespace ClearFolder
             _ = DialogHost.Show(new ProgressBar());
 
             int failDelete = 0;
-            for (int i = deleteFiles.Count - 1; i >= 0; i--)
-            {
-                try
-                {
-                    FileSystem.DeleteFile(deleteFiles[i].FullName, UIOption.OnlyErrorDialogs, recycleOption);
-                    deleteFiles.RemoveAt(i);
-                }
-                catch (Exception)
-                {
-                    failDelete++;
-                }
-            }
+            await Task.Run(DeleteFiles);
 
             DialogHost.Close("RootDialog");
             Folders.First(f => f.Name == folderPath).ToolTipText = $"Delete {failDelete} files";
+
+            void DeleteFiles()
+            {
+                foreach (FileInfo file in deleteFiles)
+                {
+                    try
+                    {
+                        FileSystem.DeleteFile(file.FullName, UIOption.OnlyErrorDialogs, recycleOption);
+                    }
+                    catch (Exception)
+                    {
+                        failDelete++;
+                    }
+                }
+            }
         }
 
         void ChangeDeleteType_OnClick(bool isDelete)
