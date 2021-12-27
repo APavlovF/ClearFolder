@@ -99,17 +99,35 @@
                   CanUserAddRows="False"
                   IsSynchronizedWithCurrentItem="True"
                   SelectedItem="{Binding SelectedFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                
+
                 <DataGrid.Resources>
                     <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatAccentButton}"/>
                     <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource MaterialDesignDataGridCell}">
                         <Setter Property="VerticalAlignment" Value="Center" />
                     </Style>
                 </DataGrid.Resources>
-                
+
                 <DataGrid.Columns >
                     <DataGridCheckBoxColumn Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                    <DataGridTextColumn Header="Folder" IsReadOnly="True" Binding="{Binding Name}"/>
+
+                    <DataGridTemplateColumn Header="Folder">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" >
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="ToolTip" Value="{Binding ToolTipText, Mode=TwoWay}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

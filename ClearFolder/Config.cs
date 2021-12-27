@@ -12,7 +12,7 @@ namespace ClearFolder
         {
             RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\ClearFolders");
             if (key == null) return;
-            if(key.GetValue(KeyName) != null) key.DeleteValue(KeyName);
+            if (key.GetValue(KeyName) != null) key.DeleteValue(KeyName);
             if (!foldersList.Any()) return;
             string folders = string.Join(",", foldersList.Where(f => !string.IsNullOrEmpty(f.Name)).Select(f => f.Name).ToArray());
             key.SetValue(KeyName, folders);
@@ -22,8 +22,10 @@ namespace ClearFolder
         {
             List<Folder> folders = new();
             RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\ClearFolders");
-            if (key == null) return folders;
-            folders.AddRange($"{key.GetValue(KeyName)}".Split(",")
+            if (key == null) return null;
+            string keyValue = $"{key.GetValue(KeyName)}";
+            if (string.IsNullOrWhiteSpace(keyValue)) return null;
+            folders.AddRange($"{keyValue}".Split(",")
                 .Select(folder => (Folder)new() { Name = folder }));
             return folders;
         }
