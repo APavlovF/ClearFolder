@@ -8,11 +8,12 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
-using ClearFolder.Models;
 using MaterialDesignThemes.Wpf;
 using Microsoft.Toolkit.Mvvm.Input;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
+using Shell32;
+using Folder = ClearFolder.Models.Folder;
 
 namespace ClearFolder
 {
@@ -25,16 +26,19 @@ namespace ClearFolder
         public int DaysBack { get; set; }
         public RelayCommand AddFolderCommand => new(AddFolderCommand_Execute);
         public RelayCommand DeleteFolderCommand => new(DeleteFolderCommand_Execute);
-        public RelayCommand IncreaseDaysCommand => new(DaysCommand_Execute);
-        public RelayCommand DecreaseDaysCommand => new(DaysCommand_Execute);
+        public RelayCommand<int> IncreaseDaysCommand => new(DaysCommand_Execute);
+        public RelayCommand<int> DecreaseDaysCommand => new(DaysCommand_Execute);
         public RelayCommand<bool> ChangeDeleteType => new(ChangeDeleteType_OnClick);
         public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
         public AsyncRelayCommand EmptyRecycleBin => new(EmptyRecycleBin_Execute);
         public bool IsAddDays { get; set; }
-        public int DaysChangeValue { get; set; }
         public bool IsDeletePermanently { get; set; }
         public RelayCommand OpenSelectedFolder => new(OpenSelectedFolder_Execute);
         public bool ClearButtonEnabled { get; set; }
+        public string RecycleCount { get; set; }
+        public string RecycleSize { get; set; }
+        public bool RecycleEnabled => RecycleCount != "0 Files";
+        public string DeleteFilesInfo { get; set; }
 
         public MainWindowViewModel()
         {
@@ -45,6 +49,15 @@ namespace ClearFolder
             SelectedFolder = Folders.FirstOrDefault();
             Folders.ForEach(f => f.DaysBack = DaysBack);
             SetClearButtonEnabled();
+            GetRecycleData();
+        }
+
+        public void SelectedChanged()
+        {
+            int count = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesCount);
+            long size = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesBytes);
+            DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
+            SetClearButtonEnabled();
         }
 
         public void SetClearButtonEnabled()
@@ -52,28 +65,22 @@ namespace ClearFolder
             ClearButtonEnabled = Folders.Any(f => f.IsSelected && f.DeleteFilesCount > 0);
         }
 
-        void DaysCommand_Execute()
+        void DaysCommand_Execute(int daysChangeValue)
         {
             if (IsAddDays)
             {
-                DaysBack += DaysChangeValue;
+                DaysBack += daysChangeValue;
             }
-            else if (DaysBack - DaysChangeValue > 0)
+            else if (DaysBack - daysChangeValue > 0)
             {
-                DaysBack -= DaysChangeValue;
+                DaysBack -= daysChangeValue;
             }
             else
             {
                 DaysBack = 0;
             }
             Folders.ForEach(f => f.DaysBack = DaysBack);
-            SetClearButtonEnabled();
-        }
-
-        public void IncreaseDecreaseDays(bool isAdd, int value)
-        {
-            IsAddDays = isAdd;
-            DaysChangeValue = value;
+            SelectedChanged();
         }
 
         void AddFolderCommand_Execute()
@@ -103,7 +110,7 @@ namespace ClearFolder
             Folders.Remove(SelectedFolder);
             Config.AddFolderToRegistry(Folders);
             FoldersCollection?.Refresh();
-            SetClearButtonEnabled();
+            SelectedChanged();
         }
 
         async Task ClearFolderCommand_Execute()
@@ -113,6 +120,7 @@ namespace ClearFolder
             {
                 await ClearFolder(folder.Name);
             }
+            SelectedChanged();
         }
 
         async Task ClearFolder(string folderPath)
@@ -138,6 +146,7 @@ namespace ClearFolder
 
             DialogHost.Close("RootDialog");
             Folders.First(f => f.Name == folderPath).DeleteFilesCount = failDelete;
+            GetRecycleData();
 
             void DeleteFiles()
             {
@@ -212,7 +221,26 @@ namespace ClearFolder
                     MessageBox.Show("Files couldn't be recycled." + ex.Message, "Clear recycle bin", MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
                 }
+                RecycleCount ="0 Files";
+                RecycleSize = "0 B";
             }
+        }
+
+        public void GetRecycleData()
+        {
+            Shell shell = new Shell();
+            Shell32.Folder recycleBin = shell.NameSpace(10);
+            int count = 0;
+            int size = 0;
+            foreach (FolderItem2 file in recycleBin.Items())
+            {
+                count++;
+                size += file.Size;
+            }
+
+            RecycleCount =$"{count} Files";
+            RecycleSize = Folder.FormatFileSize(size);
+            Marshal.FinalReleaseComObject(shell);
         }
     }
 }
