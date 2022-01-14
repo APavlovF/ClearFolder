@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using ClearFolder.Models;
 using Microsoft.Win32;
@@ -27,6 +28,7 @@ namespace ClearFolder
             if (string.IsNullOrWhiteSpace(keyValue)) return null;
             folders.AddRange($"{keyValue}".Split(",")
                 .Select(folder => (Folder)new() { Name = folder }));
+            folders.RemoveAll(f => !Directory.Exists(f.Name));
             return folders;
         }
     }

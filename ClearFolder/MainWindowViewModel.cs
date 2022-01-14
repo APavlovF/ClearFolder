@@ -37,7 +37,7 @@ namespace ClearFolder
         public bool ClearButtonEnabled { get; set; }
         public string RecycleCount { get; set; }
         public string RecycleSize { get; set; }
-        public bool RecycleEnabled => RecycleCount != "0 Files";
+        public bool RecycleEnabled => RecycleCount != "0 Items";
         public string DeleteFilesInfo { get; set; }
 
         public MainWindowViewModel()
@@ -56,7 +56,7 @@ namespace ClearFolder
         {
             int count = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesCount);
             long size = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesBytes);
-            DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
+            DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";               
             SetClearButtonEnabled();
         }
 
@@ -221,7 +221,7 @@ namespace ClearFolder
                     MessageBox.Show("Files couldn't be recycled." + ex.Message, "Clear recycle bin", MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
                 }
-                RecycleCount ="0 Files";
+                RecycleCount ="0 Items";
                 RecycleSize = "0 B";
             }
         }
@@ -238,7 +238,7 @@ namespace ClearFolder
                 size += file.Size;
             }
 
-            RecycleCount =$"{count} Files";
+            RecycleCount =$"{count} Items";
             RecycleSize = Folder.FormatFileSize(size);
             Marshal.FinalReleaseComObject(shell);
         }
