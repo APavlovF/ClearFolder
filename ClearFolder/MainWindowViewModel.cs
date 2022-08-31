@@ -14,6 +14,7 @@ using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
 using Shell32;
 using Folder = ClearFolder.Models.Folder;
+using SearchOption = System.IO.SearchOption;
 
 namespace ClearFolder
 {
@@ -56,7 +57,7 @@ namespace ClearFolder
         {
             int count = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesCount);
             long size = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesBytes);
-            DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";               
+            DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
             SetClearButtonEnabled();
         }
 
@@ -125,9 +126,9 @@ namespace ClearFolder
 
         async Task ClearFolder(string folderPath)
         {
-            List<FileInfo> deleteFiles = Directory.GetFiles(folderPath).Select(f => new FileInfo(f))
-                .Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
-                            && f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
+            List<FileInfo> deleteFiles = Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f)).Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
+                                                         && f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
             if (!deleteFiles.Any())
             {
                 MessageBox.Show($"Files older than {DaysBack} day{(DaysBack > 1 ? "s" : "")} not found in\n{folderPath}",
@@ -143,6 +144,7 @@ namespace ClearFolder
 
             int failDelete = 0;
             await Task.Run(DeleteFiles);
+            DeleteEmptySubdirectories(folderPath);
 
             DialogHost.Close("RootDialog");
             Folders.First(f => f.Name == folderPath).DeleteFilesCount = failDelete;
@@ -161,6 +163,18 @@ namespace ClearFolder
                         failDelete++;
                     }
                 }
+            }
+
+            static void DeleteEmptySubdirectories(string parentDirectory)
+            {
+                Parallel.ForEach(Directory.GetDirectories(parentDirectory), directory =>
+                {
+                    DeleteEmptySubdirectories(directory);
+                    if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                    {
+                        Directory.Delete(directory, false);
+                    }
+                });
             }
         }
 
@@ -221,7 +235,7 @@ namespace ClearFolder
                     MessageBox.Show("Files couldn't be recycled." + ex.Message, "Clear recycle bin", MessageBoxButtons.OK,
                         MessageBoxIcon.Stop);
                 }
-                RecycleCount ="0 Items";
+                RecycleCount = "0 Items";
                 RecycleSize = "0 B";
             }
         }
@@ -238,7 +252,7 @@ namespace ClearFolder
                 size += file.Size;
             }
 
-            RecycleCount =$"{count} Items";
+            RecycleCount = $"{count} Items";
             RecycleSize = Folder.FormatFileSize(size);
             Marshal.FinalReleaseComObject(shell);
         }

@@ -24,9 +24,10 @@ namespace ClearFolder.Models
         void SetFilesInfo()
         {
             if (string.IsNullOrWhiteSpace(Name)) return;
-            DirectoryInfo d = new DirectoryInfo(Name);
-            List<FileInfo> fis = d.GetFiles().Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
-                                                         && f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
+            List<FileInfo> fis = Directory.GetFiles(Name, "*", SearchOption.AllDirectories)
+                .Select(f => new FileInfo(f))
+                .Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
+                            && f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
             long size = fis.Sum(fi => fi.Length);
             DeleteFilesBytes = size;
             DeleteFilesSize = FormatFileSize(size);
