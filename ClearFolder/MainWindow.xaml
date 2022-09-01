@@ -27,11 +27,11 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <DataTemplate DataType="{x:Type forms:ProgressBar}">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
+            <StackPanel Width="500" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
                 <ProgressBar Style="{DynamicResource MaterialDesignCircularProgressBar}" 
-                             Width="30" Height="30" HorizontalAlignment="Center" Margin="16" 
+                             HorizontalAlignment="Center" Margin="16" 
                              IsIndeterminate="True" Value="0" />
-                <TextBlock Text="Delete files, please wait..." Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="16"  HorizontalAlignment="Center" />
+                <TextBlock Width="400" Text="{Binding DataContext.ProgressStatus, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="16"  HorizontalAlignment="Center" />
             </StackPanel>
         </DataTemplate>
         <system:Boolean x:Key="MoveToRecycleBin">False</system:Boolean>

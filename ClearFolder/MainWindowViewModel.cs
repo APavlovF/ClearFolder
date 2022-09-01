@@ -21,6 +21,7 @@ namespace ClearFolder
     [AddINotifyPropertyChangedInterface]
     public class MainWindowViewModel
     {
+        public string ProgressStatus { get; set; }
         public List<Folder> Folders { get; set; }
         public ICollectionView FoldersCollection { get; set; }
         public Folder SelectedFolder { get; set; }
@@ -156,6 +157,7 @@ namespace ClearFolder
                 {
                     try
                     {
+                        ProgressStatus = $"Delete file: {file.Name}";
                         FileSystem.DeleteFile(file.FullName, UIOption.OnlyErrorDialogs, recycleOption);
                     }
                     catch (Exception)
@@ -165,15 +167,14 @@ namespace ClearFolder
                 }
             }
 
-            static void DeleteEmptySubdirectories(string parentDirectory)
+            void DeleteEmptySubdirectories(string parentDirectory)
             {
                 Parallel.ForEach(Directory.GetDirectories(parentDirectory), directory =>
                 {
                     DeleteEmptySubdirectories(directory);
-                    if (!Directory.EnumerateFileSystemEntries(directory).Any())
-                    {
-                        Directory.Delete(directory, false);
-                    }
+                    if (Directory.EnumerateFileSystemEntries(directory).Any()) return;
+                    ProgressStatus = $"Delete folder: {directory}";
+                    Directory.Delete(directory, false);
                 });
             }
         }
