@@ -123,8 +123,8 @@
                     <Button Background="{StaticResource AddButtonImageBrush}" HorizontalAlignment="Center" ToolTip="Empty Recycle Bin"
                         Command="{Binding EmptyRecycleBin}" IsEnabled="{Binding RecycleEnabled}"/>
                     <StackPanel Orientation="Vertical">
-                        <Label Content="{Binding RecycleCount}" Margin="5 0"/>
-                        <Label Content="{Binding RecycleSize}" Margin="5 0"/>
+                        <Label Content="{Binding RecycleCount, UpdateSourceTrigger=PropertyChanged}" Margin="5 0"/>
+                        <Label Content="{Binding RecycleSize, UpdateSourceTrigger=PropertyChanged}" Margin="5 0"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
