@@ -12,7 +12,6 @@ using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
-using Shell32;
 using Folder = ClearFolder.Models.Folder;
 using SearchOption = System.IO.SearchOption;
 
@@ -21,6 +20,8 @@ namespace ClearFolder
     [AddINotifyPropertyChangedInterface]
     public class MainWindowViewModel
     {
+        readonly RecycleBinHelper _recycleBinHelper = new();
+
         public string ProgressStatus { get; set; }
         public List<Folder> Folders { get; set; }
         public ICollectionView FoldersCollection { get; set; }
@@ -93,7 +94,7 @@ namespace ClearFolder
             string selectedFolder = fbd.SelectedPath;
             if (Folders == null)
             {
-                Folders = new() { new() { Name = selectedFolder, DaysBack = DaysBack } };
+                Folders = [new() { Name = selectedFolder, DaysBack = DaysBack }];
                 FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
             }
             if (Folders.Any(f => f.Name == selectedFolder)) return;
@@ -243,19 +244,9 @@ namespace ClearFolder
 
         public void GetRecycleData()
         {
-            Shell shell = new Shell();
-            Shell32.Folder recycleBin = shell.NameSpace(10);
-            int count = 0;
-            int size = 0;
-            foreach (FolderItem2 file in recycleBin.Items())
-            {
-                count++;
-                size += file.Size;
-            }
-
-            RecycleCount = $"{count} Items";
-            RecycleSize = Folder.FormatFileSize(size);
-            Marshal.FinalReleaseComObject(shell);
+            (string RecycleCount, string RecycleSize) binData = _recycleBinHelper.GetRecycleData();
+            RecycleCount = binData.RecycleCount;
+            RecycleSize = binData.RecycleSize;
         }
     }
 }
