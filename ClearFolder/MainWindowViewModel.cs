@@ -1,4 +1,8 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using MaterialDesignThemes.Wpf;
+using Microsoft.VisualBasic.FileIO;
+using PropertyChanged;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,11 +12,8 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
-using CommunityToolkit.Mvvm.Input;
-using MaterialDesignThemes.Wpf;
-using Microsoft.VisualBasic.FileIO;
-using PropertyChanged;
 using Folder = ClearFolder.Models.Folder;
+using MessageBox = System.Windows.Forms.MessageBox;
 using SearchOption = System.IO.SearchOption;
 
 namespace ClearFolder
@@ -220,25 +221,34 @@ namespace ClearFolder
             DialogResult result = MessageBox.Show("Are you sure you want to delete all the items from recycle bin?",
                 "Clear recycle bin", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
             if (result == DialogResult.Cancel) return;
-            //_ = DialogHost.Show(new ProgressBar());
-            await Task.Run(DeleteFiles);
-            //DialogHost.Close("RootDialog");
+            if (await Task.Run(DeleteFiles))
+            {
+                MessageBox.Show("Files deleted.", "Clear recycle bin", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("Files couldn't be recycled.", "Clear recycle bin", MessageBoxButtons.OK,
+                    MessageBoxIcon.Stop);
+            }
 
-            void DeleteFiles()
+            System.Windows.Application.Current?.MainWindow?.Activate();
+
+            bool DeleteFiles()
             {
                 try
                 {
                     _ = SHEmptyRecycleBin(IntPtr.Zero, null, RecycleFlags.SHRB_NOCONFIRMATION);
-                    MessageBox.Show("Files deleted.", "Clear recycle bin",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (Exception ex)
+                catch (Exception e)
                 {
-                    MessageBox.Show("Files couldn't be recycled." + ex.Message, "Clear recycle bin", MessageBoxButtons.OK,
-                        MessageBoxIcon.Stop);
+                    Debug.WriteLine(e.Message);
+                    return false;
                 }
                 RecycleCount = "0 Items";
                 RecycleSize = "0 B";
+
+                return true;
             }
         }
 
