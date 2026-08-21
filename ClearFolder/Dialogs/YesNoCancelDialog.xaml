@@ -7,7 +7,11 @@
             xmlns:dialogs="clr-namespace:ClearFolder.Dialogs"
             mc:Ignorable="d" Margin="20"
             d:DesignHeight="450" d:DesignWidth="800" d:DataContext="{d:DesignInstance dialogs:YesNoCancelDialogViewModel}">
-    <TextBlock Text="{Binding Question}"/>
+
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,20" HorizontalAlignment="Center">
+        <md:PackIcon Kind="{Binding IconKind}" Width="32" Height="32" Margin="0,0,10,0"/>
+        <TextBlock Text="{Binding Question}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+    </StackPanel>
     <ItemsControl ItemsSource="{Binding Buttons}">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
@@ -21,7 +25,7 @@
         </ItemsControl.ItemTemplate>
         <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
             </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
     </ItemsControl>

@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Forms;
+using ClearFolder.Models;
 using Folder = ClearFolder.Models.Folder;
 using SearchOption = System.IO.SearchOption;
 
@@ -110,7 +111,8 @@ public class MainWindowViewModel
     async Task DeleteFolderCommand_Execute()
     {
         if (SelectedFolder == null || !Folders.Contains(SelectedFolder)) return;
-        if (await OpenYesNoCancelDialog($"Remove {SelectedFolder.Name} from list?", true) != DialogResult.OK) return;
+        if (await OpenYesNoCancelDialog($"Remove {SelectedFolder.Name} from list?", true, DialogIcon.Warning) !=
+            DialogResult.OK) return;
         Folders.Remove(SelectedFolder);
         Config.AddFolderToRegistry(Folders);
         FoldersCollection?.Refresh();
@@ -139,8 +141,8 @@ public class MainWindowViewModel
             return;
         }
 
-        if (await OpenYesNoCancelDialog($"Delete {deleteFiles.Count} files from {folderPath}?", true) !=
-            DialogResult.OK) return;
+        if (await OpenYesNoCancelDialog($"Delete {deleteFiles.Count} files from {folderPath}?", true,
+                DialogIcon.HelpCircle) != DialogResult.OK) return;
         RecycleOption recycleOption = IsDeletePermanently
             ? RecycleOption.DeletePermanently
             : RecycleOption.SendToRecycleBin;
@@ -187,9 +189,9 @@ public class MainWindowViewModel
         IsDeletePermanently = isDelete;
     }
 
-    async Task<DialogResult> OpenYesNoCancelDialog(string message, bool useOkCancel)
+    async Task<DialogResult> OpenYesNoCancelDialog(string message, bool useOkCancel, DialogIcon icon)
     {
-        object ob = await OpenDialog.ShowYesNoCancel(DialogName, message, useOkCancel);
+        object ob = await OpenDialog.ShowYesNoCancel(DialogName, message, useOkCancel, icon);
         return (DialogResult)ob;
     }
 
@@ -225,7 +227,8 @@ public class MainWindowViewModel
     async Task EmptyRecycleBin_Execute()
     {
         DialogResult result =
-            await OpenYesNoCancelDialog("Are you sure you want to delete all the items from recycle bin?", true);
+            await OpenYesNoCancelDialog("Are you sure you want to delete all the items from recycle bin?", true,
+                DialogIcon.Warning);
         if (result is DialogResult.Cancel or DialogResult.No) return;
         if (await Task.Run(DeleteFiles))
         {

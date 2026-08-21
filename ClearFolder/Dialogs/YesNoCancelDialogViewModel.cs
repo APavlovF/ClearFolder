@@ -7,10 +7,12 @@ namespace ClearFolder.Dialogs;
 public class YesNoCancelDialogViewModel
 {
     public ObservableCollection<DialogButton> Buttons { get; } = [];
+    public string IconKind { get; set; }
     public string Question { get; set; }
 
-    public YesNoCancelDialogViewModel(string question, bool useOkCancel)
+    public YesNoCancelDialogViewModel(string question, bool useOkCancel, DialogIcon icon)
     {
+        IconKind = $"{icon}";
         Question = question;
 
         if (useOkCancel)

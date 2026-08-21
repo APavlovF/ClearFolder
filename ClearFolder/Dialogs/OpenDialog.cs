@@ -1,5 +1,6 @@
 ﻿using MaterialDesignThemes.Wpf;
 using System.Threading.Tasks;
+using ClearFolder.Models;
 
 namespace ClearFolder.Dialogs;
 
@@ -12,9 +13,10 @@ public static class OpenDialog
         await DialogHost.Show(messageDialog, dialogName);
     }
 
-    public static async Task<object> ShowYesNoCancel(string dialogName, string question, bool useOkCancel)
+    public static async Task<object> ShowYesNoCancel(string dialogName, string question, bool useOkCancel,
+        DialogIcon icon)
     {
-        YesNoCancelDialogViewModel viewModel = new(question, useOkCancel);
+        YesNoCancelDialogViewModel viewModel = new(question, useOkCancel, icon);
         YesNoCancelDialog dialog = new() { DataContext = viewModel };
         return await DialogHost.Show(dialog, dialogName);
     }
