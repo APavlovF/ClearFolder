@@ -40,7 +40,7 @@
         <system:Int32 x:Key="DaysChange10">10</system:Int32>
     </Window.Resources>
 
-    <materialDesign:DialogHost Identifier="RootDialog">
+    <materialDesign:DialogHost Identifier="{Binding DialogName}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="20"/>
