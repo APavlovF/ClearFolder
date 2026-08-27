@@ -162,7 +162,7 @@ public class MainWindowViewModel
             {
                 try
                 {
-                    ProgressStatus = $"Delete file: {file.Name}";
+                    ProgressStatus = $"Delete file: {file.Name}".TrimLongString(50);
                     FileSystem.DeleteFile(file.FullName, UIOption.OnlyErrorDialogs, recycleOption);
                 }
                 catch (Exception)
@@ -178,7 +178,7 @@ public class MainWindowViewModel
             {
                 DeleteEmptySubdirectories(directory);
                 if (Directory.EnumerateFileSystemEntries(directory).Any()) return;
-                ProgressStatus = $"Delete folder: {directory}";
+                ProgressStatus = $"Delete folder: {directory}".TrimLongString(50);
                 Directory.Delete(directory, false);
             });
         }
