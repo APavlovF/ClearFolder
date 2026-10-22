@@ -8,20 +8,16 @@ namespace ClearFolder.Models;
 
 public partial class Folder : ObservableObject
 {
-    [ObservableProperty] string _name = "";
     [ObservableProperty] bool _isSelected;
     [ObservableProperty] int _daysBack;
-    [ObservableProperty] string _deleteFilesSize = "0 B";
     [ObservableProperty] long _deleteFilesBytes;
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectEnabled))]
     int _deleteFilesCount;
+    [ObservableProperty] string _deleteFilesSize = "0 B";
+    [ObservableProperty] string _name = "";
 
     public bool SelectEnabled => DeleteFilesCount != 0;
-
-    // ReSharper disable once UnusedParameterInPartialMethod
-    partial void OnDaysBackChanged(int value) => Refresh();
 
     public void Refresh()
     {
@@ -46,4 +42,7 @@ public partial class Folder : ObservableObject
 
         if (DeleteFilesCount == 0) IsSelected = false;
     }
+
+    // ReSharper disable once UnusedParameterInPartialMethod
+    partial void OnDaysBackChanged(int value) => Refresh();
 }

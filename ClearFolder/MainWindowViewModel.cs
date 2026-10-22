@@ -19,20 +19,19 @@ public partial class MainWindowViewModel : ObservableObject
     readonly IFolderCleaner _folderCleaner;
     readonly IFolderRepository _folderRepository;
     readonly IRecycleBinService _recycleBinService;
-    public string DialogName { get; } = $"Dialog-{DateTime.Now.GetHashCode()}";
-    public ObservableCollection<Folder> Folders { get; }
-    [ObservableProperty] string _progressStatus = "";   // -> ProgressStatus
-    [ObservableProperty] Folder? _selectedFolder;       // -> SelectedFolder
-    [ObservableProperty] int _daysBack = 7;             // -> DaysBack
-    [ObservableProperty] bool _isDeletePermanently;     // -> IsDeletePermanently
     [ObservableProperty] bool _clearButtonEnabled;      // -> ClearButtonEnabled
+    [ObservableProperty] int _daysBack = 7;             // -> DaysBack
     [ObservableProperty] string _deleteFilesInfo = "";  // -> DeleteFilesInfo
-    [ObservableProperty] string _recycleSize = "0 B";   // -> RecycleSize
-
+    [ObservableProperty] bool _isDeletePermanently;     // -> IsDeletePermanently
+    [ObservableProperty] string _progressStatus = "";   // -> ProgressStatus
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RecycleEnabled))]
     string _recycleCount = RecycleBinService.ZeroItems; // -> RecycleCount
+    [ObservableProperty] string _recycleSize = "0 B";   // -> RecycleSize
+    [ObservableProperty] Folder? _selectedFolder;       // -> SelectedFolder
 
+    public string DialogName { get; } = $"Dialog-{DateTime.Now.GetHashCode()}";
+    public ObservableCollection<Folder> Folders { get; }
     public bool RecycleEnabled => RecycleCount != RecycleBinService.ZeroItems;
 
     public MainWindowViewModel(IDialogService dialogService,
@@ -48,11 +47,7 @@ public partial class MainWindowViewModel : ObservableObject
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         Folders = _folderRepository.GetFolders() ?? [];
         SelectedFolder = Folders.FirstOrDefault();
-        foreach (Folder f in Folders)
-        {
-            f.DaysBack = DaysBack;
-            Subscribe(f);
-        }
+        UpdateFolders();
         SetClearButtonEnabled();
         GetRecycleData();
     }
@@ -70,43 +65,6 @@ public partial class MainWindowViewModel : ObservableObject
     public void SetClearButtonEnabled() => ClearButtonEnabled = Folders.Any(f => f is { IsSelected: true, DeleteFilesCount: > 0 });
 
     [RelayCommand]
-    void IncreaseDays(int delta)
-    {
-        DaysBack += delta;
-        UpdateFolders();
-    }
-
-    [RelayCommand]
-    void DecreaseDays(int delta)
-    {
-        DaysBack = Math.Max(0, DaysBack - delta);
-        UpdateFolders();
-    }
-
-    void Subscribe(Folder folder) => folder.PropertyChanged += Folder_PropertyChanged;
-
-    void Unsubscribe(Folder folder) => folder.PropertyChanged -= Folder_PropertyChanged;
-
-    void Folder_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(Folder.IsSelected))
-        {
-            SelectedChanged();
-        }
-    }
-
-    void UpdateFolders()
-    {
-        foreach (Folder f in Folders)
-        {
-            f.DaysBack = DaysBack;
-            Subscribe(f);
-        }
-
-        SelectedChanged();
-    }
-
-    [RelayCommand]
     void AddFolder()
     {
         string path = _dialogService.GetFolder();
@@ -121,16 +79,7 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    async Task DeleteFolderAsync()
-    {
-        if (SelectedFolder == null || !Folders.Contains(SelectedFolder)) return;
-        if (!await _dialogService.Confirm($"Remove {SelectedFolder.Name} from list?", DialogName, DialogIcon.Warning)) return;
-
-        Folders.Remove(SelectedFolder);
-        Unsubscribe(SelectedFolder);
-        _folderRepository.AddFolderToRegistry(Folders);
-        SelectedChanged();
-    }
+    void ChangeDeleteType(bool isDelete) => IsDeletePermanently = isDelete;
 
     [RelayCommand]
     async Task ClearFolderAsync()
@@ -148,10 +97,23 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    void ChangeDeleteType(bool isDelete) => IsDeletePermanently = isDelete;
+    void DecreaseDays(int delta)
+    {
+        DaysBack = Math.Max(0, DaysBack - delta);
+        UpdateFolders();
+    }
 
     [RelayCommand]
-    async Task OpenSelectedFolderAsync(Folder folder) => await _folderRepository.OpenFolder(folder, DialogName);
+    async Task DeleteFolderAsync()
+    {
+        if (SelectedFolder == null || !Folders.Contains(SelectedFolder)) return;
+        if (!await _dialogService.Confirm($"Remove {SelectedFolder.Name} from list?", DialogName, DialogIcon.Warning)) return;
+
+        Folders.Remove(SelectedFolder);
+        Unsubscribe(SelectedFolder);
+        _folderRepository.AddFolderToRegistry(Folders);
+        SelectedChanged();
+    }
 
     [RelayCommand]
     async Task EmptyRecycleBinAsync()
@@ -166,10 +128,40 @@ public partial class MainWindowViewModel : ObservableObject
         System.Windows.Application.Current?.MainWindow?.Activate();
     }
 
+    void Folder_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Folder.IsSelected)) SelectedChanged();
+    }
+
     void GetRecycleData()
     {
         (string RecycleCount, string RecycleSize) binData = _recycleBinService.GetRecycleData();
         RecycleCount = binData.RecycleCount;
         RecycleSize = binData.RecycleSize;
+    }
+
+    [RelayCommand]
+    void IncreaseDays(int delta)
+    {
+        DaysBack += delta;
+        UpdateFolders();
+    }
+
+    [RelayCommand]
+    async Task OpenSelectedFolderAsync(Folder folder) => await _folderRepository.OpenFolder(folder, DialogName);
+
+    void Subscribe(Folder folder) => folder.PropertyChanged += Folder_PropertyChanged;
+
+    void Unsubscribe(Folder folder) => folder.PropertyChanged -= Folder_PropertyChanged;
+
+    void UpdateFolders()
+    {
+        foreach (Folder f in Folders)
+        {
+            f.DaysBack = DaysBack;
+            Subscribe(f);
+        }
+
+        SelectedChanged();
     }
 }
