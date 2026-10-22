@@ -4,9 +4,10 @@ namespace ClearFolder
 {
     public partial class MainWindow
     {
-        public MainWindow()
+        public MainWindow(MainWindowViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
 
         void ButtonIncrease_OnClick(object sender, RoutedEventArgs e)

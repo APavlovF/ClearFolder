@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ClearFolder"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:local="clr-namespace:ClearFolder"
+        xmlns:models="clr-namespace:ClearFolder.Models"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -16,11 +17,8 @@
         FontFamily="{DynamicResource MaterialDesignFont}"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
-        Title="Clear Folder" SizeToContent="WidthAndHeight">
-
-    <Window.DataContext>
-        <local:MainWindowViewModel/>
-    </Window.DataContext>
+        Title="Clear Folder" SizeToContent="WidthAndHeight"
+        d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel, IsDesignTimeCreatable=False}">
 
     <Window.Resources>
         <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}">
@@ -104,7 +102,7 @@
 
                 <StackPanel.Resources>
                     <Style TargetType="RadioButton" BasedOn="{StaticResource MaterialDesignAccentRadioButton}">
-                        <Setter Property="Command" Value="{Binding ChangeDeleteType}"/>
+                        <Setter Property="Command" Value="{Binding ChangeDeleteTypeCommand}"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                         <Setter Property="Margin" Value="2"/>
                     </Style>
@@ -121,7 +119,7 @@
                         <ImageBrush x:Key="AddButtonImageBrush" ImageSource="/download.ico" Stretch="UniformToFill"/>
                     </StackPanel.Resources>
                     <Button Background="{StaticResource AddButtonImageBrush}" HorizontalAlignment="Center" ToolTip="Empty Recycle Bin"
-                        Command="{Binding EmptyRecycleBin}" IsEnabled="{Binding RecycleEnabled}"/>
+                        Command="{Binding EmptyRecycleBinCommand}" IsEnabled="{Binding RecycleEnabled}"/>
                     <StackPanel Orientation="Vertical">
                         <Label Content="{Binding RecycleCount, UpdateSourceTrigger=PropertyChanged}" Margin="5 0"/>
                         <Label Content="{Binding RecycleSize, UpdateSourceTrigger=PropertyChanged}" Margin="5 0"/>
@@ -131,12 +129,13 @@
 
             <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                   Margin="20 0"
-                  ItemsSource="{Binding FoldersCollection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                  ItemsSource="{Binding FoldersCollection}"
+                  d:ItemsSource="{d:DesignInstance Type=models:Folder}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsSynchronizedWithCurrentItem="True"
                   GridLinesVisibility="None"
-                  SelectedItem="{Binding SelectedFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                  SelectedItem="{Binding SelectedFolder, Mode=TwoWay}">
 
                 <DataGrid.Resources>
                     <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatAccentButton}"/>
@@ -184,7 +183,7 @@
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Command="{Binding DataContext.OpenSelectedFolder , RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" Content="Open"/>
+                                <Button Command="{Binding DataContext.OpenSelectedFolderCommand , RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" Content="Open"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

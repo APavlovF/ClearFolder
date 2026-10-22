@@ -1,59 +1,61 @@
 ﻿using ClearFolder.Dialogs;
+using ClearFolder.Models;
+using ClearFolder.Services;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MaterialDesignThemes.Wpf;
 using Microsoft.VisualBasic.FileIO;
-using PropertyChanged;
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using System.Windows.Forms;
-using ClearFolder.Models;
 using Folder = ClearFolder.Models.Folder;
-using SearchOption = System.IO.SearchOption;
 
 namespace ClearFolder;
 
-[AddINotifyPropertyChangedInterface]
-public class MainWindowViewModel
+public partial class MainWindowViewModel : ObservableObject
 {
-    readonly RecycleBinHelper _recycleBinHelper = new();
-
-    public string ProgressStatus { get; set; }
-    public List<Folder> Folders { get; set; }
-    public ICollectionView FoldersCollection { get; set; }
-    public Folder SelectedFolder { get; set; }
-    public int DaysBack { get; set; }
-    public RelayCommand AddFolderCommand => new(AddFolderCommand_Execute);
-    public AsyncRelayCommand DeleteFolderCommand => new(DeleteFolderCommand_Execute);
+    readonly IDialogService _dialogService;
+    readonly IFolderCleaner _folderCleaner;
+    readonly IFolderRepository _folderRepository;
+    readonly IRecycleBinService _recycleBinService;
     public string DialogName { get; } = $"Dialog-{DateTime.Now.GetHashCode()}";
-    public RelayCommand<int> IncreaseDaysCommand => new(DaysCommand_Execute);
-    public RelayCommand<int> DecreaseDaysCommand => new(DaysCommand_Execute);
-    public RelayCommand<bool> ChangeDeleteType => new(ChangeDeleteType_OnClick);
-    public AsyncRelayCommand ClearFolderCommand => new(ClearFolderCommand_Execute);
-    public AsyncRelayCommand EmptyRecycleBin => new(EmptyRecycleBin_Execute);
-    public bool IsAddDays { get; set; }
-    public bool IsDeletePermanently { get; set; }
-    public AsyncRelayCommand OpenSelectedFolder => new(OpenSelectedFolder_Execute);
-    public bool ClearButtonEnabled { get; set; }
-    public string RecycleCount { get; set; }
-    public string RecycleSize { get; set; }
-    public bool RecycleEnabled => RecycleCount != "0 Items";
-    public string DeleteFilesInfo { get; set; }
+    public ObservableCollection<Folder> Folders { get; }
+    public ICollectionView FoldersCollection { get; }
+    [ObservableProperty] string _progressStatus = "";   // -> ProgressStatus
+    [ObservableProperty] Folder? _selectedFolder;       // -> SelectedFolder
+    [ObservableProperty] int _daysBack = 7;             // -> DaysBack
+    [ObservableProperty] bool _isAddDays;               // -> IsAddDays
+    [ObservableProperty] bool _isDeletePermanently;     // -> IsDeletePermanently
+    [ObservableProperty] bool _clearButtonEnabled;      // -> ClearButtonEnabled
+    [ObservableProperty] string _deleteFilesInfo = "";  // -> DeleteFilesInfo
+    [ObservableProperty] string _recycleSize = "0 B";   // -> RecycleSize
 
-    public MainWindowViewModel()
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RecycleEnabled))]
+    string _recycleCount = RecycleBinService.ZeroItems; // -> RecycleCount
+
+    public bool RecycleEnabled => RecycleCount != RecycleBinService.ZeroItems;
+
+    public MainWindowViewModel(IDialogService dialogService,
+        IFolderCleaner folderCleaner,
+        IFolderRepository folderRepository,
+        IRecycleBinService recycleBinService)
     {
+        _dialogService = dialogService;
+        _folderCleaner = folderCleaner;
+        _folderRepository = folderRepository;
+        _recycleBinService = recycleBinService;
         DaysBack = 7;
-        Folders = Config.GetFolders();
-        if (Folders == null) return;
+        // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+        Folders = _folderRepository.GetFolders() ?? [];
         FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
         SelectedFolder = Folders.FirstOrDefault();
-        Folders.ForEach(f => f.DaysBack = DaysBack);
+        foreach (Folder f in Folders)
+        {
+            f.DaysBack = DaysBack;
+        }
         SetClearButtonEnabled();
         GetRecycleData();
     }
@@ -62,206 +64,98 @@ public class MainWindowViewModel
     {
         int count = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesCount);
         long size = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesBytes);
-        DeleteFilesInfo = count == 0 ? "" : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
+        DeleteFilesInfo = count == 0 ? string.Empty : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
         SetClearButtonEnabled();
     }
 
-    public void SetClearButtonEnabled()
-    {
-        ClearButtonEnabled = Folders.Any(f => f.IsSelected && f.DeleteFilesCount > 0);
-    }
+    public void SetClearButtonEnabled() => ClearButtonEnabled = Folders.Any(f => f is { IsSelected: true, DeleteFilesCount: > 0 });
 
-    void DaysCommand_Execute(int daysChangeValue)
+    [RelayCommand]
+    void IncreaseDays(int delta) => ChangeDays(delta);
+
+    [RelayCommand]
+    void DecreaseDays(int delta) => ChangeDays(delta);
+
+    void ChangeDays(int delta)
     {
         if (IsAddDays)
         {
-            DaysBack += daysChangeValue;
-        }
-        else if (DaysBack - daysChangeValue > 0)
-        {
-            DaysBack -= daysChangeValue;
+            DaysBack += delta;
         }
         else
         {
-            DaysBack = 0;
+            DaysBack = Math.Max(0, DaysBack - delta);
         }
-        Folders.ForEach(f => f.DaysBack = DaysBack);
+
+        foreach (Folder f in Folders)
+        {
+            f.DaysBack = DaysBack;
+        }
+
         SelectedChanged();
     }
 
-    void AddFolderCommand_Execute()
+    [RelayCommand]
+    void AddFolder()
     {
-        using FolderBrowserDialog fbd = new();
-        DialogResult result = fbd.ShowDialog();
-        if (result != DialogResult.OK || string.IsNullOrWhiteSpace(fbd.SelectedPath)) return;
-        string selectedFolder = fbd.SelectedPath;
-        if (Folders == null)
-        {
-            Folders = [new() { Name = selectedFolder, DaysBack = DaysBack }];
-            FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
-        }
-        if (Folders.Any(f => f.Name == selectedFolder)) return;
-        Folders.Add(new() { Name = selectedFolder, DaysBack = DaysBack });
-        SelectedFolder ??= new() { Name = selectedFolder };
-        FoldersCollection?.Refresh();
-        Config.AddFolderToRegistry(Folders);
+        string path = _dialogService.GetFolder();
+        if (string.IsNullOrWhiteSpace(path) || Folders.Any(f => f.Name == path)) return;
+
+        Folder folder = new Folder { Name = path, DaysBack = DaysBack };
+        Folders.Add(folder);
+        SelectedFolder = folder;
+        _folderRepository.AddFolderToRegistry(Folders);
         SetClearButtonEnabled();
     }
 
-    async Task DeleteFolderCommand_Execute()
+    [RelayCommand]
+    async Task DeleteFolderAsync()
     {
         if (SelectedFolder == null || !Folders.Contains(SelectedFolder)) return;
-        if (await OpenYesNoCancelDialog($"Remove {SelectedFolder.Name} from list?", true, DialogIcon.Warning) !=
-            DialogResult.OK) return;
+        if (!await _dialogService.Confirm($"Remove {SelectedFolder.Name} from list?", DialogName, DialogIcon.Warning)) return;
+
         Folders.Remove(SelectedFolder);
-        Config.AddFolderToRegistry(Folders);
-        FoldersCollection?.Refresh();
+        _folderRepository.AddFolderToRegistry(Folders);
         SelectedChanged();
     }
 
-    async Task ClearFolderCommand_Execute()
+    [RelayCommand]
+    async Task ClearFolderAsync()
     {
-        if (!Folders.Any()) return;
         foreach (Folder folder in Folders.Where(f => f.IsSelected))
         {
-            await ClearFolder(folder.Name);
+            await _folderCleaner.ClearFolder(folder.Name, DaysBack, DialogName,
+                new Progress<string>(s => ProgressStatus = s),
+                IsDeletePermanently ? RecycleOption.DeletePermanently : RecycleOption.SendToRecycleBin);
+            Folders.First(f => f.Name == folder.Name).Refresh();
+            GetRecycleData();
         }
+
         SelectedChanged();
     }
 
-    async Task ClearFolder(string folderPath)
+    [RelayCommand]
+    void ChangeDeleteType(bool isDelete) => IsDeletePermanently = isDelete;
+
+    [RelayCommand]
+    async Task OpenSelectedFolderAsync() => await _folderRepository.OpenFolder(SelectedFolder, DialogName);
+
+    [RelayCommand]
+    async Task EmptyRecycleBinAsync()
     {
-        List<FileInfo> deleteFiles = Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories)
-            .Select(f => new FileInfo(f)).Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)
-                                                     && f.CreationTime < DateTime.Now.AddDays(-1 * DaysBack)).ToList();
-        if (!deleteFiles.Any())
-        {
-            await OpenDialog.ShowMessage(DialogName,
-                $"Files older than {DaysBack} day{(DaysBack > 1 ? "s" : "")} not found in\n{folderPath}");
+        if (!await _dialogService.Confirm("Are you sure you want to delete all the items from recycle bin?", DialogName, DialogIcon.Warning))
             return;
-        }
 
-        if (await OpenYesNoCancelDialog($"Delete {deleteFiles.Count} files from {folderPath}?", true,
-                DialogIcon.HelpCircle) != DialogResult.OK) return;
-        RecycleOption recycleOption = IsDeletePermanently
-            ? RecycleOption.DeletePermanently
-            : RecycleOption.SendToRecycleBin;
-        _ = DialogHost.Show(new ProgressBar());
-
-        int failDelete = 0;
-        await Task.Run(DeleteFiles);
-        DeleteEmptySubdirectories(folderPath);
-
-        DialogHost.Close(DialogName);
-        Folders.First(f => f.Name == folderPath).DeleteFilesCount = failDelete;
-        GetRecycleData();
-
-        void DeleteFiles()
-        {
-            foreach (FileInfo file in deleteFiles)
-            {
-                try
-                {
-                    ProgressStatus = $"Delete file: {file.Name}".TrimLongString(50);
-                    FileSystem.DeleteFile(file.FullName, UIOption.OnlyErrorDialogs, recycleOption);
-                }
-                catch (Exception)
-                {
-                    failDelete++;
-                }
-            }
-        }
-
-        void DeleteEmptySubdirectories(string parentDirectory)
-        {
-            Parallel.ForEach(Directory.GetDirectories(parentDirectory), directory =>
-            {
-                DeleteEmptySubdirectories(directory);
-                if (Directory.EnumerateFileSystemEntries(directory).Any()) return;
-                ProgressStatus = $"Delete folder: {directory}".TrimLongString(50);
-                Directory.Delete(directory, false);
-            });
-        }
-    }
-
-    void ChangeDeleteType_OnClick(bool isDelete)
-    {
-        IsDeletePermanently = isDelete;
-    }
-
-    async Task<DialogResult> OpenYesNoCancelDialog(string message, bool useOkCancel, DialogIcon icon)
-    {
-        object ob = await OpenDialog.ShowYesNoCancel(DialogName, message, useOkCancel, icon);
-        return (DialogResult)ob;
-    }
-
-    async Task OpenSelectedFolder_Execute()
-    {
-        if (SelectedFolder == null) return;
-        string folderPath = SelectedFolder.Name;
-        if (Directory.Exists(folderPath))
-        {
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                Arguments = folderPath,
-                FileName = "explorer.exe"
-            };
-
-            Process.Start(startInfo);
-        }
-        else
-        {
-            await OpenDialog.ShowMessage(DialogName, $"{folderPath}\nDirectory does not exist!");
-        }
-    }
-
-
-    [DllImport("Shell32.dll", CharSet = CharSet.Unicode)]
-    static extern uint SHEmptyRecycleBin(IntPtr hwnd, string pszRootPath, RecycleFlags dwFlags);
-
-    enum RecycleFlags : uint
-    {
-        SHRB_NOCONFIRMATION = 0x00000001
-    }
-
-    async Task EmptyRecycleBin_Execute()
-    {
-        DialogResult result =
-            await OpenYesNoCancelDialog("Are you sure you want to delete all the items from recycle bin?", true,
-                DialogIcon.Warning);
-        if (result is DialogResult.Cancel or DialogResult.No) return;
-        if (await Task.Run(DeleteFiles))
-        {
-            await OpenDialog.ShowMessage(DialogName, "Files deleted.");
-        }
-        else
-        {
-            await OpenDialog.ShowMessage(DialogName, "Files couldn't be recycled.");
-        }
-
+        (bool success, string count, string size) result = await Task.Run(_recycleBinService.TryEmptyRecycleBin);
+        RecycleCount = result.count;
+        RecycleSize = result.size;
+        await OpenDialog.ShowMessage(DialogName, result.success ? "Files deleted." : "Files couldn't be recycled.");
         System.Windows.Application.Current?.MainWindow?.Activate();
-
-        bool DeleteFiles()
-        {
-            try
-            {
-                _ = SHEmptyRecycleBin(IntPtr.Zero, null, RecycleFlags.SHRB_NOCONFIRMATION);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
-                return false;
-            }
-            RecycleCount = "0 Items";
-            RecycleSize = "0 B";
-
-            return true;
-        }
     }
 
-    public void GetRecycleData()
+    void GetRecycleData()
     {
-        (string RecycleCount, string RecycleSize) binData = _recycleBinHelper.GetRecycleData();
+        (string RecycleCount, string RecycleSize) binData = _recycleBinService.GetRecycleData();
         RecycleCount = binData.RecycleCount;
         RecycleSize = binData.RecycleSize;
     }
