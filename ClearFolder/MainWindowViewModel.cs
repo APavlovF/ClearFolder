@@ -5,11 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.VisualBasic.FileIO;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Data;
 using Folder = ClearFolder.Models.Folder;
 
 namespace ClearFolder;
@@ -22,11 +22,9 @@ public partial class MainWindowViewModel : ObservableObject
     readonly IRecycleBinService _recycleBinService;
     public string DialogName { get; } = $"Dialog-{DateTime.Now.GetHashCode()}";
     public ObservableCollection<Folder> Folders { get; }
-    public ICollectionView FoldersCollection { get; }
     [ObservableProperty] string _progressStatus = "";   // -> ProgressStatus
     [ObservableProperty] Folder? _selectedFolder;       // -> SelectedFolder
     [ObservableProperty] int _daysBack = 7;             // -> DaysBack
-    [ObservableProperty] bool _isAddDays;               // -> IsAddDays
     [ObservableProperty] bool _isDeletePermanently;     // -> IsDeletePermanently
     [ObservableProperty] bool _clearButtonEnabled;      // -> ClearButtonEnabled
     [ObservableProperty] string _deleteFilesInfo = "";  // -> DeleteFilesInfo
@@ -50,11 +48,11 @@ public partial class MainWindowViewModel : ObservableObject
         DaysBack = 7;
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         Folders = _folderRepository.GetFolders() ?? [];
-        FoldersCollection = CollectionViewSource.GetDefaultView(Folders);
         SelectedFolder = Folders.FirstOrDefault();
         foreach (Folder f in Folders)
         {
             f.DaysBack = DaysBack;
+            Subscribe(f);
         }
         SetClearButtonEnabled();
         GetRecycleData();
@@ -62,8 +60,10 @@ public partial class MainWindowViewModel : ObservableObject
 
     public void SelectedChanged()
     {
-        int count = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesCount);
-        long size = Folders.Where(f => f.IsSelected).Sum(f => f.DeleteFilesBytes);
+        List<Folder> selected = Folders.Where(f => f.IsSelected).ToList();
+        int count = selected.Sum(f => f.DeleteFilesCount);
+        long size = selected.Sum(f => f.DeleteFilesBytes);
+
         DeleteFilesInfo = count == 0 ? string.Empty : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
         SetClearButtonEnabled();
     }
@@ -71,25 +71,37 @@ public partial class MainWindowViewModel : ObservableObject
     public void SetClearButtonEnabled() => ClearButtonEnabled = Folders.Any(f => f is { IsSelected: true, DeleteFilesCount: > 0 });
 
     [RelayCommand]
-    void IncreaseDays(int delta) => ChangeDays(delta);
+    void IncreaseDays(int delta)
+    {
+        DaysBack += delta;
+        UpdateFolders();
+    }
 
     [RelayCommand]
-    void DecreaseDays(int delta) => ChangeDays(delta);
-
-    void ChangeDays(int delta)
+    void DecreaseDays(int delta)
     {
-        if (IsAddDays)
-        {
-            DaysBack += delta;
-        }
-        else
-        {
-            DaysBack = Math.Max(0, DaysBack - delta);
-        }
+        DaysBack = Math.Max(0, DaysBack - delta);
+        UpdateFolders();
+    }
 
+    void Subscribe(Folder folder) => folder.PropertyChanged += Folder_PropertyChanged;
+
+    void Unsubscribe(Folder folder) => folder.PropertyChanged -= Folder_PropertyChanged;
+
+    void Folder_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Folder.IsSelected))
+        {
+            SelectedChanged();
+        }
+    }
+
+    void UpdateFolders()
+    {
         foreach (Folder f in Folders)
         {
             f.DaysBack = DaysBack;
+            Subscribe(f);
         }
 
         SelectedChanged();
@@ -102,6 +114,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(path) || Folders.Any(f => f.Name == path)) return;
 
         Folder folder = new Folder { Name = path, DaysBack = DaysBack };
+        Subscribe(folder);
         Folders.Add(folder);
         SelectedFolder = folder;
         _folderRepository.AddFolderToRegistry(Folders);
@@ -115,6 +128,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (!await _dialogService.Confirm($"Remove {SelectedFolder.Name} from list?", DialogName, DialogIcon.Warning)) return;
 
         Folders.Remove(SelectedFolder);
+        Unsubscribe(SelectedFolder);
         _folderRepository.AddFolderToRegistry(Folders);
         SelectedChanged();
     }
@@ -138,7 +152,7 @@ public partial class MainWindowViewModel : ObservableObject
     void ChangeDeleteType(bool isDelete) => IsDeletePermanently = isDelete;
 
     [RelayCommand]
-    async Task OpenSelectedFolderAsync() => await _folderRepository.OpenFolder(SelectedFolder, DialogName);
+    async Task OpenSelectedFolderAsync(Folder folder) => await _folderRepository.OpenFolder(folder, DialogName);
 
     [RelayCommand]
     async Task EmptyRecycleBinAsync()

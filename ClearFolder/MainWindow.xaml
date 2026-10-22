@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:forms="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         xmlns:local="clr-namespace:ClearFolder"
-        xmlns:models="clr-namespace:ClearFolder.Models"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -18,7 +17,7 @@
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
         Title="Clear Folder" SizeToContent="WidthAndHeight"
-        d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel, IsDesignTimeCreatable=False}">
+        d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel, IsDesignTimeCreatable=True}">
 
     <Window.Resources>
         <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignPaperButton}">
@@ -71,13 +70,11 @@
                         Content="&lt;&lt;" 
                         Command="{Binding DecreaseDaysCommand}"
                         CommandParameter="{StaticResource DaysChange10}"
-                        Click="ButtonDecrease_OnClick"
                         ToolTip="Decrease 10 days" />
                 <Button Margin="5"
                         Content="&lt;" 
                         Command="{Binding DecreaseDaysCommand}"
-                       CommandParameter="{StaticResource DaysChange1}"
-                        Click="ButtonDecrease_OnClick"
+                        CommandParameter="{StaticResource DaysChange1}"
                         ToolTip="Decrease 1 day" />
                 <TextBox Margin="10 20"
                      VerticalAlignment="Center"  HorizontalAlignment="Left"
@@ -87,13 +84,11 @@
                         Content="&gt;" 
                         Command="{Binding IncreaseDaysCommand}"
                         CommandParameter="{StaticResource DaysChange1}"
-                        Click="ButtonIncrease_OnClick"
                         ToolTip="Increase 1 day" />
                 <Button Margin="5"
                         Content="&gt;&gt;" 
                         Command="{Binding IncreaseDaysCommand}"
                         CommandParameter="{StaticResource DaysChange10}"
-                        Click="ButtonIncrease_OnClick"
                         ToolTip="Increase 10 day" />
             </StackPanel>
 
@@ -108,8 +103,8 @@
                     </Style>
                 </StackPanel.Resources>
 
-                <RadioButton IsChecked="True" Content="Send to Recycle Bin" CommandParameter="{StaticResource MoveToRecycleBin}"/>
-                <RadioButton Content="Delete Permanently" CommandParameter="{StaticResource DeletePermanently}"/>
+                <RadioButton GroupName="DeleteType" IsChecked="True" Content="Send to Recycle Bin" CommandParameter="{StaticResource MoveToRecycleBin}"/>
+                <RadioButton GroupName="DeleteType" Content="Delete Permanently" CommandParameter="{StaticResource DeletePermanently}"/>
             </StackPanel>
 
             <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center">
@@ -129,8 +124,7 @@
 
             <DataGrid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                   Margin="20 0"
-                  ItemsSource="{Binding FoldersCollection}"
-                  d:ItemsSource="{d:DesignInstance Type=models:Folder}"
+                  ItemsSource="{Binding Folders}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsSynchronizedWithCurrentItem="True"
@@ -156,7 +150,6 @@
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                 <Setter Property="BorderThickness" Value="0"/>
                                 <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                <EventSetter Event="CheckBox.Click" Handler="IsSelectedClick"/>
                                 <Setter Property="IsEnabled" Value="{Binding SelectEnabled}"/>
                             </Style>
                         </DataGridCheckBoxColumn.CellStyle>
@@ -183,7 +176,9 @@
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Command="{Binding DataContext.OpenSelectedFolderCommand , RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" Content="Open"/>
+                                <Button Command="{Binding DataContext.OpenSelectedFolderCommand , RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" 
+                                        CommandParameter="{Binding}"
+                                        Content="Open"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
