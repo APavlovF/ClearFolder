@@ -19,7 +19,7 @@ public class FolderRepository(IDialogService dialogService) : IFolderRepository
         RegistryKey key = Registry.CurrentUser.CreateSubKey(SubKeyName);
         if (key.GetValue(KeyName) != null) key.DeleteValue(KeyName);
         if (!foldersList.Any()) return;
-        string folders = string.Join(",", foldersList.Where(f => !string.IsNullOrEmpty(f.Name)).Select(f => f.Name).ToArray());
+        string folders = string.Join("|", foldersList.Where(f => !string.IsNullOrEmpty(f.Name)).Select(f => f.Name).ToArray());
         key.SetValue(KeyName, folders);
     }
 
@@ -29,7 +29,7 @@ public class FolderRepository(IDialogService dialogService) : IFolderRepository
         RegistryKey key = Registry.CurrentUser.CreateSubKey(SubKeyName);
         string keyValue = $"{key.GetValue(KeyName)}";
         if (string.IsNullOrWhiteSpace(keyValue)) return null!;
-        folders.AddRange($"{keyValue}".Split(",")
+        folders.AddRange($"{keyValue}".Split("|")
             .Select(folder => (Folder)new() { Name = folder }));
         folders.RemoveAll(f => !Directory.Exists(f.Name));
         return new ObservableCollection<Folder>(folders);
