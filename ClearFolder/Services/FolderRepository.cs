@@ -1,5 +1,4 @@
-﻿using ClearFolder.Dialogs;
-using ClearFolder.Models;
+﻿using ClearFolder.Models;
 using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,13 +9,14 @@ using System.Threading.Tasks;
 
 namespace ClearFolder.Services;
 
-public class FolderRepository : IFolderRepository
+public class FolderRepository(IDialogService dialogService) : IFolderRepository
 {
     const string KeyName = "Folders";
+    const string SubKeyName = @"SOFTWARE\ClearFolders";
 
     public void AddFolderToRegistry(ObservableCollection<Folder> foldersList)
     {
-        RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\ClearFolders");
+        RegistryKey key = Registry.CurrentUser.CreateSubKey(SubKeyName);
         if (key.GetValue(KeyName) != null) key.DeleteValue(KeyName);
         if (!foldersList.Any()) return;
         string folders = string.Join(",", foldersList.Where(f => !string.IsNullOrEmpty(f.Name)).Select(f => f.Name).ToArray());
@@ -26,7 +26,7 @@ public class FolderRepository : IFolderRepository
     public ObservableCollection<Folder> GetFolders()
     {
         List<Folder> folders = [];
-        RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\ClearFolders");
+        RegistryKey key = Registry.CurrentUser.CreateSubKey(SubKeyName);
         string keyValue = $"{key.GetValue(KeyName)}";
         if (string.IsNullOrWhiteSpace(keyValue)) return null!;
         folders.AddRange($"{keyValue}".Split(",")
@@ -44,7 +44,7 @@ public class FolderRepository : IFolderRepository
         }
         else
         {
-            await OpenDialog.ShowMessage(dialogName, $"{path}\nDirectory does not exist!");
+            await dialogService.ShowMessage(dialogName, $"{path}\nDirectory does not exist!");
         }
     }
 }

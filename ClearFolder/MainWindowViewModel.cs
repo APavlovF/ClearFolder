@@ -1,5 +1,4 @@
-﻿using ClearFolder.Dialogs;
-using ClearFolder.Models;
+﻿using ClearFolder.Models;
 using ClearFolder.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -64,7 +63,7 @@ public partial class MainWindowViewModel : ObservableObject
         int count = selected.Sum(f => f.DeleteFilesCount);
         long size = selected.Sum(f => f.DeleteFilesBytes);
 
-        DeleteFilesInfo = count == 0 ? string.Empty : $"Delete {count} Files - {Folder.FormatFileSize(size)}";
+        DeleteFilesInfo = count == 0 ? string.Empty : $"Delete {count} Files - {size.FormatFileSize()}";
         SetClearButtonEnabled();
     }
 
@@ -163,7 +162,7 @@ public partial class MainWindowViewModel : ObservableObject
         (bool success, string count, string size) result = await Task.Run(_recycleBinService.TryEmptyRecycleBin);
         RecycleCount = result.count;
         RecycleSize = result.size;
-        await OpenDialog.ShowMessage(DialogName, result.success ? "Files deleted." : "Files couldn't be recycled.");
+        await _dialogService.ShowMessage(DialogName, result.success ? "Files deleted." : "Files couldn't be recycled.");
         System.Windows.Application.Current?.MainWindow?.Activate();
     }
 

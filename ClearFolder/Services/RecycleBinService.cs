@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using ClearFolder.Models;
 
 namespace ClearFolder.Services;
 
@@ -53,7 +52,7 @@ public class RecycleBinService : IRecycleBinService
         int result = SHQueryRecycleBin(null!, ref rbInfo);
 
         return result == 0
-            ? ($"{rbInfo.i64NumItems} Items", Folder.FormatFileSize(rbInfo.i64Size))
+            ? ($"{rbInfo.i64NumItems} Items", rbInfo.i64Size.FormatFileSize())
             : (ZeroItems, "0 KB");
     }
 }

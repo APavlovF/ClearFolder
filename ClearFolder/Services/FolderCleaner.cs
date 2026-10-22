@@ -1,5 +1,4 @@
-﻿using ClearFolder.Dialogs;
-using ClearFolder.Models;
+﻿using ClearFolder.Models;
 using MaterialDesignThemes.Wpf;
 using Microsoft.VisualBasic.FileIO;
 using System;
@@ -12,7 +11,7 @@ using SearchOption = System.IO.SearchOption;
 
 namespace ClearFolder.Services;
 
-public class FolderCleaner : IFolderCleaner
+public class FolderCleaner(IDialogService dialogService) : IFolderCleaner
 {
     public async Task ClearFolder(string folderPath, int daysBack, string dialogName, IProgress<string> progress,
         RecycleOption recycleOption)
@@ -20,12 +19,13 @@ public class FolderCleaner : IFolderCleaner
         List<FileInfo> deleteFiles = GetFilesToDelete(folderPath, daysBack);
         if (!deleteFiles.Any())
         {
-            await OpenDialog.ShowMessage(dialogName,
+            await dialogService.ShowMessage(dialogName,
                 $"Files older than {daysBack} day{(daysBack > 1 ? "s" : "")} not found in\n{folderPath}");
+            
             return;
         }
 
-        object ob = await OpenDialog.ShowYesNoCancel(dialogName, $"Delete {deleteFiles.Count} files from {folderPath}?",
+        object ob = await dialogService.ShowYesNoCancel(dialogName, $"Delete {deleteFiles.Count} files from {folderPath}?",
             true, DialogIcon.HelpCircle) ?? DialogResult.Cancel;
         if ((DialogResult)ob != DialogResult.OK) return;
 
@@ -57,7 +57,7 @@ public class FolderCleaner : IFolderCleaner
             }
             catch (Exception)
             {
-                // ignored
+                progress?.Report($"Error deleting file: {file.Name}".TrimLongString(50));
             }
         }
     }
