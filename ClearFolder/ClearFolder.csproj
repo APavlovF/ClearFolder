@@ -8,6 +8,8 @@
     <ApplicationIcon>download.ico</ApplicationIcon>
     <StartupObject>ClearFolder.App</StartupObject>
     <UseWindowsForms>True</UseWindowsForms>
+	<TrimMode>partial</TrimMode>
+	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
