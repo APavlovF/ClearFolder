@@ -8,9 +8,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Folder = ClearFolder.Models.Folder;
 
+[assembly: InternalsVisibleTo("TestApp")]
 namespace ClearFolder;
 
 public partial class MainWindowViewModel : ObservableObject
@@ -31,7 +33,7 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] Folder? _selectedFolder;       // -> SelectedFolder
 
     public string DialogName { get; } = $"Dialog-{DateTime.Now.GetHashCode()}";
-    public ObservableCollection<Folder> Folders { get; }
+    public ObservableCollection<Folder> Folders { get; internal set; }
     public bool RecycleEnabled => RecycleCount != RecycleBinService.ZeroItems;
 
     public MainWindowViewModel(IDialogService dialogService,

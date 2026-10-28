@@ -23,8 +23,18 @@ jobs:
 
     - name: Restore NuGet Packages
       run: nuget restore
+      
+      # --- AUTOMATED TESTING LAYER ---
+    - name: Run MSTest Suites
+      run: |
+        msbuild /t:Restore,Build /p:Configuration=Release
+        vstest.console.exe **\*Test*.dll /TestCaseFilter:"TestCategory!=Integration"
 
     # Compiles using full MSBuild to handle COM references correctly
+    # Outputs clean binaries specifically into the publish folder
+    - name: Build Application for Release
+      run: msbuild /p:Configuration=Release /p:OutputPath=../publish_output
+
     - name: Zip the Application Binaries
       run: Compress-Archive -Path ./publish_output/* -DestinationPath ./ClearFolder_${{ github.ref_name }}.zip
 
