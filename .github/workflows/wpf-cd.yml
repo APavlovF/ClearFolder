@@ -31,7 +31,7 @@ jobs:
     - name: Build and Run MSTest Suites
       run: |
         msbuild /t:Restore,Build /p:Configuration=Release
-        vstest.console.exe **\*Test*.dll
+        dotnet test --no-build --configuration Release
         
         # --- JOB 2: RUNS ONLY ON TAG PUSHES, AFTER TESTS PASS ---
   publish-and-release:
