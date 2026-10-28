@@ -1,37 +1,54 @@
-name: WPF App Auto-Publisher
+name: WPF App CI/CD Pipeline
 
 on:
   push:
+    branches:      
+      - master
     tags:
       - 'v*'
+  pull_request:
+    branches:      
+      - master
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  publish-and-release:
+  # --- JOB 1: RUNS ON EVERY PUSH OR PULL REQUEST ---
+  test-and-validate:
     runs-on: windows-latest
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # This sets up the full enterprise MSBuild engine needed for COM references
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
     - name: Restore NuGet Packages
       run: nuget restore
-      
-      # --- AUTOMATED TESTING LAYER ---
-    - name: Run MSTest Suites
+
+    - name: Build and Run MSTest Suites
       run: |
         msbuild /t:Restore,Build /p:Configuration=Release
-        vstest.console.exe **\*Test*.dll /TestCaseFilter:"TestCategory!=Integration"
+        vstest.console.exe **\*Test*.dll
+        
+        # --- JOB 2: RUNS ONLY ON TAG PUSHES, AFTER TESTS PASS ---
+  publish-and-release:
+    runs-on: windows-latest
+    needs: test-and-validate # Ensures tests must pass before this job starts
+    if: startsWith(github.ref, 'refs/tags/v') # Blocks this job unless it's a version tag
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-    # Compiles using full MSBuild to handle COM references correctly
-    # Outputs clean binaries specifically into the publish folder
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet Packages
+      run: nuget restore
+
     - name: Build Application for Release
       run: msbuild /p:Configuration=Release /p:OutputPath=../publish_output
 
